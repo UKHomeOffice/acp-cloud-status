@@ -37,7 +37,6 @@ def get_services(event, session):
                 logging.info(f"Found tags for {entity}: {tags}")
             else:
                 logging.error(f"{entity['entityValue']} not in ARN format, skipping tag retrieval")
-                return
 
         project_service = ''
 
@@ -70,7 +69,7 @@ def get_topics(sns_client, topics, region, account, prefix, next_token=''):
             prefix_length = len(prefix_string)
             if topic['TopicArn'][:prefix_length] == prefix_string:
                 logging.info(f"Found ACP Health topic: {topic['TopicArn']}")
-                topics[topic['TopicArn'][prefix_length:prefix_length]] = topic['TopicArn']
+                topics[topic['TopicArn'][prefix_length:]] = topic['TopicArn']
 
     if topic_response['NextToken']:
         get_topics(sns_client, topics, region, account, prefix, topic_response['NextToken'])
