@@ -23,7 +23,7 @@ def get_services(event, session):
 
     tags = {}
 
-    tag_client = session.client('resourcegroupstaggingapi', region_name=os.environ['AWS_REGION'])
+    tag_client = session.client('resourcegroupstaggingapi', region_name=aws_region)
 
     for entity in affected_entities:
         try:
@@ -94,7 +94,7 @@ def trigger_sns(topic, sns_client):
     sns_client.publish(TopicArn=topic)
 
 
-def main(event, context):
+def main(event):
 
     session = boto3.Session()
 
@@ -114,3 +114,4 @@ def main(event, context):
     else:
         for topic_arn in all_health_topics.values():
             trigger_sns(topic_arn, sns_client)
+
