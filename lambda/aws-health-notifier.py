@@ -18,7 +18,7 @@ def get_services(event, session):
     try:
         affected_entities = event['detail']['affectedEntities']
     except KeyError as e:
-        logging.error(f"Cannot get ns, {e} element missing from event")
+        logging.error(f"Cannot get services, {e} element missing from event")
         return services
 
     tags = {}
@@ -114,4 +114,3 @@ def main(event):
     else:
         for topic_arn in all_health_topics.values():
             trigger_sns(topic_arn, sns_client)
-
