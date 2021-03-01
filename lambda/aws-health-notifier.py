@@ -6,6 +6,11 @@ import logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+aws_region = os.environ['AWS_REGION']
+aws_account = os.environ['AWS_ACCOUNT_ID']
+sns_topic_prefix = os.environ['SNS_TOPIC_PREFIX']
+
+
 def get_services(event, session):
 
     services = []
@@ -54,22 +59,24 @@ def get_services(event, session):
 
         return services
 
-def get_topics(sns_client, topics, region, next_token=''):
+
+def get_topics(sns_client, topics, region, account, prefix, next_token=''):
 
     topic_response = sns_client.list_topics(NextToken=next_token)
 
     if topic_response['Topics']:
         for topic in topic_response['Topics']:
-            prefix_string = f"arn:aws:sns:{region}:{os.environ['AWS_ACCOUNT_ID']}:acp_health_alert_"
+            prefix_string = f"arn:aws:sns:{region}:{account}:{prefix}"
             prefix_length = len(prefix_string)
             if topic['TopicArn'][:prefix_length] == prefix_string:
                 logging.info(f"Found ACP Health topic: {topic['TopicArn']}")
                 topics[topic['TopicArn'][prefix_length:prefix_length]] = topic['TopicArn']
 
     if topic_response['NextToken']:
-        get_topics(sns_client, topics, topic_response['NextToken'])
+        get_topics(sns_client, topics, region, account, prefix, topic_response['NextToken'])
     else:
         return topics
+
 
 def parse_services(topics, project_service):
 
@@ -87,9 +94,8 @@ def trigger_sns(topic, sns_client):
 
     sns_client.publish(TopicArn=topic)
 
-def main(event, context):
 
-    aws_region = os.environ['AWS_REGION']
+def main(event, context):
 
     session = boto3.Session()
 
@@ -99,7 +105,7 @@ def main(event, context):
 
     topics = {}
 
-    all_health_topics = get_topics(sns_client, topics, aws_region)
+    all_health_topics = get_topics(sns_client, topics, aws_region, aws_account, sns_topic_prefix)
 
     if affected_services:
         for service in affected_services:
