@@ -7,7 +7,8 @@
   "time": "2018-08-01T06:27:57Z",
   "region": "global",
   "resources": [
-    "arn:aws:ec2:us-east-1:123456789012:instance/i-abcd1111"
+    "arn:aws:ec2:us-east-1:123456789012:instance/i-abcd1111",
+    "arn:aws:ec2:us-east-1:123456789012:instance/i-abcd2222"
   ],
   "detail": {
     "eventArn": "arn:aws:health:global::event/AWS_ABUSE_DOS_REPORT_92387492375_4498_2018_08_01_02_33_00",
@@ -24,6 +25,9 @@
     "affectedEntities": [
       {
         "entityValue": "arn:aws:ec2:us-east-1:123456789012:instance/i-abcd1111"
+      },
+      {
+        "entityValue": "arn:aws:ec2:us-east-1:123456789012:instance/i-abcd2222"
       }
     ]
   }

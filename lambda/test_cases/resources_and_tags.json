@@ -34,7 +34,7 @@
         "entityValue": "i-0d2448fefff1ba643",
         "tags": {
           "stage": "test",
-          "app": "some-ap",
+          "app": "some-app",
           "PROJECT-SERVICE": "test-service-2"
         }
       }

@@ -35,10 +35,10 @@ class Notifier:
         tag_client = self.session.client('resourcegroupstaggingapi')
 
         for entity in affected_entities:
-            try:
+            if 'tags' in entity:
                 tags = entity['tags']
-            except KeyError as e:
-                logging.error(f"{e} not found for {entity['entityValue']} - searching manually")
+            else:
+                logging.error(f"'tags' not found for {entity['entityValue']} - searching manually")
                 if entity['entityValue'][:4] == 'arn:':
                     resource_details = tag_client.get_resources(ResourceARNList=[entity['entityValue']])
                     if resource_details['ResourceTagMappingList']:
@@ -87,25 +87,21 @@ class Notifier:
                     logging.info(f"Found ACP Health topic: {topic['TopicArn']}")
                     topics[topic['TopicArn'][prefix_length:]] = topic['TopicArn']
 
-        if topic_response['NextToken']:
+        if 'NextToken' in topic_response:
             self.get_topics(sns_client, topics, topic_response['NextToken'])
         else:
             return topics
 
-    def parse_services(self, topics, project_service):
+    def parse_topics(self, topics, project_service):
 
-        try:
-            topic_arn = topics[project_service]
-        except KeyError as e:
-            message = f"{e} not found - total SNS topics found: {[list(topics.keys())]}"
-            logging.error(message)
-            return
+        if project_service in topics:
+            return topics[project_service]
+        else:
+            logging.error(f"{project_service} not found - total SNS topics found: {[list(topics.keys())]}")
 
-        return topic_arn
+    def trigger_sns(self, topic_arn, sns_client, event):
 
-    def trigger_sns(self, topic, sns_client, event):
-
-        sns_client.publish(TopicArn=topic,
+        sns_client.publish(TopicArn=topic_arn,
                            Subject='ACP Cloud Health Alert',
                            Message=event)
 
@@ -121,7 +117,7 @@ class Notifier:
 
         if affected_services:
             for service in affected_services:
-                topic_arn = self.parse_services(all_health_topics, service)
+                topic_arn = self.parse_topics(all_health_topics, service)
                 if topic_arn:
                     self.trigger_sns(topic_arn, sns_client, event)
         else:
