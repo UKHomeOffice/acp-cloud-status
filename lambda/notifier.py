@@ -111,9 +111,11 @@ class Notifier:
 
         sns_client = self.session.client('sns')
 
-        topics = {}
+        all_health_topics = {}
 
-        all_health_topics = self.get_topics(sns_client, topics)
+        self.get_topics(sns_client, all_health_topics)
+
+        logging.info(f"Parsing total ACP Cloud Health topics: {all_health_topics}")
 
         if affected_services:
             for service in affected_services:

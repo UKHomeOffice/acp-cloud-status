@@ -55,12 +55,7 @@ class TestNotifierGetServices(NotifierTestCase):
                  ]
               }
            ],
-           "ResponseMetadata": {
-              "RequestId": "6fd99a75-73b9-4556-9f9c-2dea3b710fa9",
-              "HTTPStatusCode": 200,
-              "HTTPHeaders": {},
-              "RetryAttempts": 0
-           }
+           "ResponseMetadata": {}
         },
         {
             "PaginationToken": "",
@@ -79,12 +74,7 @@ class TestNotifierGetServices(NotifierTestCase):
                     ]
                 }
             ],
-            "ResponseMetadata": {
-                "RequestId": "6fd99a75-73b9-4556-9f9c-2dea3b710fa9",
-                "HTTPStatusCode": 200,
-                "HTTPHeaders": {},
-                "RetryAttempts": 0
-            }
+            "ResponseMetadata": {}
         }]
 
         services = self.notifier.get_services(resources_no_tags_event)
@@ -105,12 +95,7 @@ class TestNotifierGetServices(NotifierTestCase):
                  "Tags": []
               }
            ],
-           "ResponseMetadata": {
-              "RequestId": "6fd99a75-73b9-4556-9f9c-2dea3b710fa9",
-              "HTTPStatusCode": 200,
-              "HTTPHeaders": {},
-              "RetryAttempts": 0
-           }
+           "ResponseMetadata": {}
         },
         {
             "PaginationToken": "",
@@ -120,12 +105,7 @@ class TestNotifierGetServices(NotifierTestCase):
                     "Tags": []
                 }
             ],
-            "ResponseMetadata": {
-                "RequestId": "6fd99a75-73b9-4556-9f9c-2dea3b710fa9",
-                "HTTPStatusCode": 200,
-                "HTTPHeaders": {},
-                "RetryAttempts": 0
-            }
+            "ResponseMetadata": {}
         }]
 
         services = self.notifier.get_services(resources_no_tags_event)
@@ -222,14 +202,102 @@ class TestNotifierTriggerSNS(NotifierTestCase):
 class TestProcessEvent(NotifierTestCase):
 
     @mock.patch('boto3.Session.client')
-    def test_trigger(self, mock_client):
+    def test_process_resources_and_tags(self, mock_client):
 
         mock_client = mock_client('sns')
 
-        self.notifier.trigger_sns(topic_arn=self.topic_1_arn,
-                                  sns_client=mock_client,
-                                  event=resources_and_tags_event)
+        mock_client.list_topics.side_effect = [
+            {'Topics': [
+                {'TopicArn': f"arn:aws:sns:{self.notifier.region}:{self.notifier.account}:topic1"},
+                {'TopicArn': f"arn:aws:sns:{self.notifier.region}:{self.notifier.account}:topic2"},
+                {'TopicArn': self.topic_1_arn}
+            ],
+                'NextToken': '0de58c91-ed93-5c19-974e-d42b0e7f437b',
+            },
+            {'Topics': [
+                {'TopicArn': self.topic_2_arn}
+            ],
+        }]
+
+        self.notifier.process_event(resources_and_tags_event)
+
+        mock_client.assert_has_calls([mock.call.list_topics(NextToken=''),
+                                      mock.call.list_topics(NextToken='0de58c91-ed93-5c19-974e-d42b0e7f437b')])
 
         mock_client.assert_has_calls([mock.call.publish(TopicArn=self.topic_1_arn,
                                                         Subject='ACP Cloud Health Alert',
+                                                        Message=resources_and_tags_event),
+                                      mock.call.publish(TopicArn=self.topic_2_arn,
+                                                        Subject='ACP Cloud Health Alert',
                                                         Message=resources_and_tags_event)])
+
+    @mock.patch('boto3.Session.client')
+    def test_process_resources_no_tags(self, mock_client):
+
+        mock_client('resourcegroupstaggingapi').get_resources.side_effect = [{
+            "PaginationToken": "",
+            "ResourceTagMappingList": [
+                {
+                    "ResourceARN": "arn:aws:ec2:us-east-1:123456789012:instance/i-abcd1111",
+                    "Tags": [
+                        {
+                            "Key": "Env",
+                            "Value": "test"
+                        },
+                        {
+                            "Key": "PROJECT-SERVICE",
+                            "Value": "test-service-1"
+                        }
+                    ]
+                }
+            ],
+            "ResponseMetadata": {}
+        },
+            {
+                "PaginationToken": "",
+                "ResourceTagMappingList": [
+                    {
+                        "ResourceARN": "arn:aws:ec2:us-east-1:123456789012:instance/i-abcd2222",
+                        "Tags": [
+                            {
+                                "Key": "Env",
+                                "Value": "test"
+                            },
+                            {
+                                "Key": "PROJECT-SERVICE",
+                                "Value": "test-service-2"
+                            }
+                        ]
+                    }
+                ],
+                "ResponseMetadata": {}
+            }]
+
+        mock_client('sns').list_topics.side_effect = [
+            {'Topics': [
+                {'TopicArn': f"arn:aws:sns:{self.notifier.region}:{self.notifier.account}:topic1"},
+                {'TopicArn': f"arn:aws:sns:{self.notifier.region}:{self.notifier.account}:topic2"},
+                {'TopicArn': self.topic_1_arn}
+            ],
+                'NextToken': '0de58c91-ed93-5c19-974e-d42b0e7f437b',
+            },
+            {'Topics': [
+                {'TopicArn': self.topic_2_arn}
+            ],
+        }]
+
+        self.notifier.process_event(resources_no_tags_event)
+
+        mock_client.assert_has_calls(
+            [mock.call().get_resources(ResourceARNList=['arn:aws:ec2:us-east-1:123456789012:instance/i-abcd1111']),
+             mock.call().get_resources(ResourceARNList=['arn:aws:ec2:us-east-1:123456789012:instance/i-abcd2222'])])
+
+        mock_client.assert_has_calls([mock.call().list_topics(NextToken=''),
+                                      mock.call().list_topics(NextToken='0de58c91-ed93-5c19-974e-d42b0e7f437b')])
+
+        mock_client.assert_has_calls([mock.call().publish(TopicArn=self.topic_1_arn,
+                                                        Subject='ACP Cloud Health Alert',
+                                                        Message=resources_no_tags_event),
+                                      mock.call().publish(TopicArn=self.topic_2_arn,
+                                                        Subject='ACP Cloud Health Alert',
+                                                        Message=resources_no_tags_event)])
