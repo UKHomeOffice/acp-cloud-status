@@ -1,0 +1,24 @@
+{
+  "version": "0",
+  "id": "7bf73129-1428-4cd3-a780-95db273d1602",
+  "detail-type": "AWS Health Event",
+  "source": "aws.health",
+  "account": "123456789012",
+  "time": "2016-06-05T06:27:57Z",
+  "region": "ap-southeast-2",
+  "resources": [],
+  "detail": {
+    "eventArn": "arn:aws:health:ap-southeast-2::event/AWS_ELASTICLOADBALANCING_API_ISSUE_90353408594353980",
+    "service": "ELASTICLOADBALANCING",
+    "eventTypeCode": "AWS_ELASTICLOADBALANCING_API_ISSUE",
+    "eventTypeCategory": "issue",
+    "startTime": "Sat, 04 Jun 2016 05:01:10 GMT",
+    "endTime": "Sat, 04 Jun 2016 05:30:57 GMT",
+    "eventDescription": [
+      {
+        "language": "en_US",
+        "latestDescription": "A description of the event will be provided here"
+      }
+    ]
+  }
+}
